@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "start": "ts-node -r esm --transpile-only index.ts"
+  },
+  "dependencies": {
+    "@types/node": "^17.0.24",
+    "dotenv": "^16.0.0",
+    "esm": "^3.2.25",
+    "node-fetch": "^2.6.5",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/node-fetch": "^2.6.1"
+  }
+}
