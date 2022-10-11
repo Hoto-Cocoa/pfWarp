@@ -16,9 +16,11 @@ const agent = new https.Agent({
     getCloudflareNetworks('6'),
   ]).then(([v4, v6]) => [...v4, ...v6]));
 
-  const ASN_LIST = process.env.ASN_LIST.split(' ').map(e => e.trim()).filter(e => e.length > 0);
-  const asnNetworks = (await Promise.all(ASN_LIST.map(asn => fetch<BgpviewApi.AsnPrefixListResponse>(`https://api.bgpview.io/asn/${asn}/prefixes`, {}, 'json')))).flatMap(r => [...r.data.ipv4_prefixes, ...r.data.ipv6_prefixes]).map(p => p.prefix);
-  await createOrUpdateAlias('WARP_ASN', asnNetworks);
+  const ASN_LIST = process.env.ASN_LIST.split(',').map(e => e.trim()).filter(e => e.length).map(e => e.split(' ')).map(e => e.map(e => e.trim()));
+  for(const [name, ...asn] of ASN_LIST) {
+    const asnNetworks = (await Promise.all(asn.map(asn => fetch<BgpviewApi.AsnPrefixListResponse>(`https://api.bgpview.io/asn/${asn}/prefixes`, {}, 'json')))).flatMap(r => [...r.data.ipv4_prefixes, ...r.data.ipv6_prefixes]).map(p => p.prefix).filter(e => e.length);
+    await createOrUpdateAlias(name, asnNetworks);
+  }
 })();
 
 async function fetch<T = any>(url: string, options: RequestInit = {}, contentType: KeyOfType<Body, Function> = 'json'): Promise<T> {
