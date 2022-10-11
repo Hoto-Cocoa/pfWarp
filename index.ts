@@ -18,7 +18,7 @@ const agent = new https.Agent({
 
   const ASN_LIST = process.env.ASN_LIST.split(',').map(e => e.trim()).filter(e => e.length).map(e => e.split(' ')).map(e => e.map(e => e.trim()));
   for(const [name, ...asn] of ASN_LIST) {
-    const asnNetworks = (await Promise.all(asn.map(asn => fetch<BgpviewApi.AsnPrefixListResponse>(`https://api.bgpview.io/asn/${asn}/prefixes`, {}, 'json')))).flatMap(r => [...r.data.ipv4_prefixes, ...r.data.ipv6_prefixes]).map(p => p.prefix).filter(e => e.length);
+    const asnNetworks = (await Promise.all(asn.map(Number).filter(e => !isNaN(e)).map(asn => fetch<BgpviewApi.AsnPrefixListResponse>(`https://api.bgpview.io/asn/${asn}/prefixes`, {}, 'json')))).flatMap(r => [...r.data.ipv4_prefixes, ...r.data.ipv6_prefixes]).map(p => p.prefix).filter(e => e.length);
     await createOrUpdateAlias(name, asnNetworks);
   }
 })();
