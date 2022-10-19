@@ -63,16 +63,14 @@ async function createOrUpdateAlias(name: string, newNetworks: string[]): Promise
   console.log(`Removing from ${name}:`, toRemove);
 
   if(toRemove.length > 0) {
-    for(const network of toRemove) {
-      await fetch(`${process.env.API_URL}/api/v1/firewall/alias/entry`, {
-        method: 'DELETE',
-        body: JSON.stringify({
-          apply: true,
-          name,
-          address: network,
-        }),
-      });
-    }
+    await fetch(`${process.env.API_URL}/api/v1/firewall/alias/entry`, {
+      method: 'DELETE',
+      body: JSON.stringify({
+        apply: true,
+        name,
+        address: toRemove,
+      }),
+    });
   }
 
   if(toAdd.length > 0) {
