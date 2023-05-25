@@ -14,6 +14,8 @@ pfWarp is automated alias management tool for pfSense.
 * `CLIENT_TOKEN` - The client token of your pfSense API user
 * `API_URL` - The hostname or IP address of your pfSense router
 * `ASN_LIST` - ASN List, check example file for format
+* `NAME` - Your name, check [bgp.tools documentation](https://bgp.tools/kb/api).
+* `EMAIL` - Your name, check [bgp.tools documentation](https://bgp.tools/kb/api).
 
 ## Usage
 * Execute `npm start` to start the application

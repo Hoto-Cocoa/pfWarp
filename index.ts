@@ -1,14 +1,8 @@
 import _fetch, { Body, RequestInit } from 'node-fetch';
-import https from 'https';
 import dotenv from 'dotenv';
 import PfsenseApi from './types/pfsense-api';
-import BgpviewApi from './types/bgpview-api';
 
 dotenv.config();
-
-const agent = new https.Agent({
-  rejectUnauthorized: false,
-});
 
 (async function() {
   await createOrUpdateAlias('CLOUDFLARE', await Promise.all([
@@ -16,19 +10,24 @@ const agent = new https.Agent({
     getCloudflareNetworks('6'),
   ]).then(([v4, v6]) => [...v4, ...v6]));
 
+  const TABLE = await getBgpTable();
   const ASN_LIST = process.env.ASN_LIST.split(',').map(e => e.trim()).filter(e => e.length).map(e => e.split(' ')).map(e => e.map(e => e.trim()));
+
   for(const [name, ...asn] of ASN_LIST) {
-    const asnNetworks = (await Promise.all(asn.map(Number).filter(e => !isNaN(e)).map((asn, index) => new Promise<BgpviewApi.AsnPrefixListResponse>(resolve => setTimeout(() => resolve(fetch<BgpviewApi.AsnPrefixListResponse>(`https://api.bgpview.io/asn/${asn}/prefixes`, {}, 'json')), index * 500))))).flatMap(r => [...r.data.ipv4_prefixes, ...r.data.ipv6_prefixes]).map(p => p.prefix).filter(e => e.length);
-    await createOrUpdateAlias(name, asnNetworks);
+    await createOrUpdateAlias(name, await getAsnNetworks(TABLE, asn));
   }
 })();
 
-async function fetch<T = any>(url: string, options: RequestInit = {}, contentType: KeyOfType<Body, Function> = 'json'): Promise<T> {
+async function fetch<T = any>(url: string, options: RequestInit = {}, contentType: KeyOfType<Body, Function> = 'json', authorizationEnabled: boolean = true): Promise<T> {
   options.headers = Object.assign({}, options.headers, {
-    Authorization: `${process.env.CLIENT_ID} ${process.env.CLIENT_TOKEN}`,
+    'User-Agent': `${process.env.NAME} ${process.env.EMAIL}`,
     'Content-Type': 'application/json',
   });
-  options.agent = agent;
+  if(authorizationEnabled) {
+    options.headers = Object.assign({}, options.headers, {
+      Authorization: `${process.env.CLIENT_ID} ${process.env.CLIENT_TOKEN}`,
+    });
+  }
   const response =  await _fetch(url, options);
   return await response[contentType]();
 }
@@ -83,4 +82,34 @@ async function createOrUpdateAlias(name: string, newNetworks: string[]): Promise
       }),
     });
   }
+}
+
+async function getBgpTable(): Promise<Map<string, string[]>> {
+  const content = await fetch('https://bgp.tools/table.txt', {}, 'text', false);
+  const lines = content.split('\n');
+  const table = new Map<string, string[]>();
+
+  for (const line of lines) {
+    const [prefix, asn] = line.split(' ');
+
+    if(table.has(asn)) {
+      table.get(asn).push(prefix);
+    } else {
+      table.set(asn, [prefix]);
+    }
+  }
+
+  return table;
+}
+
+async function getAsnNetworks(table: Map<string, string[]>, asns: string[]): Promise<string[]> {
+  const networks: string[] = [];
+
+  for (const asn of asns) {
+    if (table.has(asn)) {
+      networks.push(...table.get(asn));
+    }
+  }
+
+  return networks;
 }
