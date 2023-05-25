@@ -85,7 +85,7 @@ async function createOrUpdateAlias(name: string, newNetworks: string[]): Promise
 }
 
 async function getBgpTable(): Promise<Map<string, string[]>> {
-  const content = await fetch('https://bgp.tools/table.txt', {}, 'text', false);
+  const content = await fetch<string>('https://bgp.tools/table.txt', {}, 'text', false);
   const lines = content.split('\n');
   const table = new Map<string, string[]>();
 
